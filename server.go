@@ -3,15 +3,26 @@ package main
 import (
 	"fmt"
 	"net"
+	"sync"
 )
 
 type Server struct {
 	IP   string
 	Port int
+	// 在线用户
+	OnlineMap map[string]*User
+	mapLock   sync.RWMutex
+	// 消息广播
+	Message chan string
 }
 
 func NewServer(IP string, port int) *Server {
-	return &Server{IP: IP, Port: port}
+	return &Server{
+		IP:        IP,
+		Port:      port,
+		OnlineMap: make(map[string]*User),
+		Message:   make(chan string),
+	}
 }
 
 // Start 启动服务
@@ -26,6 +37,9 @@ func (s *Server) Start() {
 	// close listen
 	defer listener.Close()
 
+	// 启动监听Message的goroutine
+	go s.ListenMessage()
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -38,5 +52,34 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Handle(conn net.Conn) {
+	// 上线
+	user := NewUser(conn)
+	s.mapLock.Lock()
+	s.OnlineMap[user.Name] = user
+	s.mapLock.Unlock()
 
+	// 广播上线消息
+	s.Broadcast(user, "已上线")
+
+	// 阻塞
+	select {}
+}
+
+// Broadcast 广播消息
+func (s *Server) Broadcast(user *User, msg string) {
+	sendMsg := fmt.Sprintf("[%s]%s:%s", user.Addr, user.Name, msg)
+	s.Message <- sendMsg
+}
+
+// ListenMessage 监听广播消息
+// 一旦有消息就发送给所有在线用户
+func (s *Server) ListenMessage() {
+	for {
+		msg := <-s.Message
+		s.mapLock.Lock()
+		for _, client := range s.OnlineMap {
+			client.C <- msg
+		}
+		s.mapLock.Unlock()
+	}
 }
