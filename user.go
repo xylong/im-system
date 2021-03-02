@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 // User 用户
@@ -58,13 +59,26 @@ func (u *User) Offline() {
 
 // Handle 消息处理
 func (u *User) Handle(msg string) {
-	switch msg {
-	case "who":
+	if msg == "who" {
 		for _, user := range u.server.OnlineMap {
 			onlineMsg := fmt.Sprintf("[%s]%s:%s", user.Addr, user.Name, msg)
 			u.Send(onlineMsg)
 		}
-	default:
+	} else if strings.Contains(msg, "rename:") {
+		name := strings.Split(msg, ":")[1]
+		_, ok := u.server.OnlineMap[name]
+		if !ok {
+			u.server.mapLock.Lock()
+			delete(u.server.OnlineMap, u.Name)
+			u.server.OnlineMap[name] = u
+			u.server.mapLock.Unlock()
+			u.Name = name
+
+			u.Send("您已更新用户名:" + name + "\n")
+		} else {
+			u.Send("用户名已占用\n")
+		}
+	} else {
 		u.server.Broadcast(u, msg)
 	}
 }
