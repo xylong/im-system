@@ -1,9 +1,22 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 )
+
+var (
+	// 服务器IP
+	RemoteIP string
+	// 服务器端口
+	RemotePort int
+)
+
+func init() {
+	flag.StringVar(&RemoteIP, "ip", "127.0.0.1", "server ip address")
+	flag.IntVar(&RemotePort, "port", 8888, "server port")
+}
 
 type Client struct {
 	IP   string
@@ -27,7 +40,9 @@ func NewClient(IP string, port int) *Client {
 }
 
 func main() {
-	client := NewClient("127.0.0.1", 8888)
+	flag.Parse()
+
+	client := NewClient(RemoteIP, RemotePort)
 	if client == nil {
 		fmt.Println("connect failed...")
 		return
