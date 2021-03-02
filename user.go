@@ -80,6 +80,23 @@ func (u *User) Handle(msg string) {
 		} else {
 			u.Send("用户名已占用\n")
 		}
+	} else if strings.Contains(msg, "to:") { // to:张三:hello
+		arr := strings.Split(msg, ":")
+		to := arr[1]
+		if to == "" {
+			u.Send("请输入用户名")
+			return
+		}
+		user, ok := u.server.OnlineMap[to]
+		if !ok {
+			u.Send("用户不存在")
+			return
+		}
+		content := arr[2]
+		if content != "" {
+			user.Send(fmt.Sprintf("%s:%s", u.Name, content))
+		}
+		return
 	} else {
 		u.server.Broadcast(u, msg)
 	}
