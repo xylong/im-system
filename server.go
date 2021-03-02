@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -74,11 +75,27 @@ func (s *Server) Handle(conn net.Conn) {
 			// 提取用户消息（去除\n）
 			msg := string(buf[:n-1])
 			user.Handle(msg)
+
+			// 维持心跳
+			user.Heartbeat <- struct{}{}
 		}
 	}()
 
 	// 阻塞
-	select {}
+	for {
+		select {
+		case <-user.Heartbeat:
+
+		case <-time.After(time.Minute * 1):
+			user.Send("Off line")
+			// 销毁用户的资源
+			close(user.C)
+			// 关闭连接
+			conn.Close()
+
+			return
+		}
+	}
 }
 
 // Broadcast 广播消息

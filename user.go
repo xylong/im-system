@@ -8,21 +8,23 @@ import (
 
 // User 用户
 type User struct {
-	Name   string
-	Addr   string
-	C      chan string
-	conn   net.Conn
-	server *Server
+	Name      string
+	Addr      string
+	C         chan string
+	Heartbeat chan struct{}
+	server    *Server
+	conn      net.Conn
 }
 
 func NewUser(conn net.Conn, server *Server) *User {
 	userAddr := conn.RemoteAddr().String()
 	user := &User{
-		Name:   userAddr,
-		Addr:   userAddr,
-		C:      make(chan string),
-		conn:   conn,
-		server: server,
+		Name:      userAddr,
+		Addr:      userAddr,
+		C:         make(chan string),
+		Heartbeat: make(chan struct{}),
+		conn:      conn,
+		server:    server,
 	}
 
 	go user.ListenMessage()
@@ -61,7 +63,7 @@ func (u *User) Offline() {
 func (u *User) Handle(msg string) {
 	if msg == "who" {
 		for _, user := range u.server.OnlineMap {
-			onlineMsg := fmt.Sprintf("[%s]%s:%s", user.Addr, user.Name, msg)
+			onlineMsg := fmt.Sprintf("[%s]%s\n", user.Addr, user.Name)
 			u.Send(onlineMsg)
 		}
 	} else if strings.Contains(msg, "rename:") {
