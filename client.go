@@ -71,7 +71,7 @@ func (c *Client) Run() {
 
 		switch c.flag {
 		case 1:
-			fmt.Println("公聊")
+			c.PublicChat()
 		case 2:
 			fmt.Println("私聊")
 		case 3:
@@ -95,6 +95,28 @@ func (c *Client) UpdateName() bool {
 
 func (c *Client) Deal() {
 	io.Copy(os.Stdout, c.conn)
+}
+
+func (c *Client) PublicChat() {
+	var msg string
+
+	fmt.Println(">>>输入聊天内容，exit退出")
+	fmt.Scanln(&msg)
+
+	for msg != "exit" {
+		if len(msg) != 0 {
+			_msg := msg + "\n"
+			_, err := c.conn.Write([]byte(_msg))
+			if err != nil {
+				fmt.Println("conn write error:", err)
+				break
+			}
+		}
+
+		msg = ""
+		fmt.Scanln(&msg)
+	}
+
 }
 
 func main() {
