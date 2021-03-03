@@ -73,7 +73,7 @@ func (c *Client) Run() {
 		case 1:
 			c.PublicChat()
 		case 2:
-			fmt.Println("私聊")
+			c.PrivateChat()
 		case 3:
 			c.UpdateName()
 		}
@@ -116,7 +116,38 @@ func (c *Client) PublicChat() {
 		msg = ""
 		fmt.Scanln(&msg)
 	}
+}
 
+func (c *Client) PrivateChat() {
+	var name string
+	var msg string
+
+	c.SelectUser()
+	fmt.Println(">>>请输入聊天对象[用户名],exit退出")
+	fmt.Scanln(&name)
+
+	for name != "exit" {
+		fmt.Println(">>>输入聊天内容,exit退出")
+		fmt.Scanln(&msg)
+
+		for msg != "exit" && len(msg) != 0 {
+			_msg := fmt.Sprintf("to:%s:%s\n", name, msg)
+			_, err := c.conn.Write([]byte(_msg))
+			if err != nil {
+				fmt.Println("conn write error:", err)
+				break
+			}
+			msg = ""
+			fmt.Scanln(&msg)
+		}
+	}
+}
+
+func (c *Client) SelectUser() {
+	if _, err := c.conn.Write([]byte("who\n")); err != nil {
+		fmt.Println("conn write error:", err)
+		return
+	}
 }
 
 func main() {
